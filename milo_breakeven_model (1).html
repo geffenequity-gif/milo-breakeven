@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milo Health — Breakeven Model</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1f2e; padding: 24px; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .metric-card { background: #f1f5f9; border-radius: 8px; padding: 12px 16px; }
+  .metric-label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+  .metric-val { font-size: 18px; font-weight: 500; }
+  .metric-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+  .controls { background: #f1f5f9; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+  .controls-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 12px; }
+  label { font-size: 13px; color: #64748b; display: block; margin-bottom: 6px; }
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+  input[type=range] { flex: 1; height: 4px; accent-color: #1d9e75; }
+  .slider-val { font-size: 13px; font-weight: 500; min-width: 48px; text-align: right; }
+  .source-note { font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; }
+  .panel-title { font-size: 12px; color: #64748b; font-weight: 500; margin-bottom: 12px; }
+  .waterfall-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .wf-label { font-size: 12px; color: #64748b; min-width: 130px; }
+  .wf-bar-wrap { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .wf-bar { height: 100%; border-radius: 3px; }
+  .wf-val { font-size: 12px; font-weight: 500; min-width: 80px; text-align: right; }
+  .wf-note { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+  .milestone-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  .milestone-row:last-child { border-bottom: none; }
+  .ms-mo { color: #64748b; min-width: 60px; }
+  .ms-pts { color: #94a3b8; flex: 1; }
+  .ms-gp { color: #64748b; }
+  .ms-net { font-weight: 500; min-width: 54px; text-align: right; }
+  .chart-wrap { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+  .chart-legend { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #64748b; }
+  .legend-swatch { width: 24px; height: 3px; border-radius: 2px; }
+  .canvas-wrap { position: relative; width: 100%; height: 220px; }
+  .scenarios-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .scenario-card { padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; }
+  .scenario-card.active { border: 2px solid #1d9e75; }
+  .scenario-name { font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+  .scenario-name.active { color: #1d9e75; }
+  .scenario-stat { font-size: 12px; color: #64748b; }
+  button { background: transparent; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  button:hover { background: #f1f5f9; }
+  @media (max-width: 700px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .controls-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .scenarios-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Milo Health — Breakeven Model</h1>
+<p class="subtitle">Gross profit basis · $500/mo marketing · Industry-sourced margins · Hormone optimization telehealth</p>
+
+<div class="metrics" id="metrics"></div>
+
+<div class="controls">
+  <div class="controls-grid">
+    <div>
+      <label>Marketing / month</label>
+      <div class="slider-row">
+        <input type="range" id="mkt" min="0" max="8000" step="250" value="500">
+        <span class="slider-val" id="mktLbl">$500</span>
+      </div>
+    </div>
+    <div>
+      <label>Med gross margin</label>
+      <div class="slider-row">
+        <input type="range" id="gm" min="30" max="65" step="5" value="45">
+        <span class="slider-val" id="gmLbl">45%</span>
+      </div>
+    </div>
+    <div>
+      <label>Medical Director</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+        <button id="mdBtn" onclick="toggleMD()">Cash $2k/mo</button>
+        <span style="font-size:11px;color:#94a3b8;" id="mdNote">click to toggle equity</span>
+      </div>
+    </div>
+  </div>
+  <div class="source-note">
+    <strong>Margin source:</strong> Hims & Hers 79–83% GM (SEC 8-K 2023–24) is from owning their own 503B pharmacy. Milo uses a third-party 503A partner — realistic GM is 40–55%. Base: 45%.
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="panel">
+    <p class="panel-title">Revenue → gross profit waterfall (per patient / month)</p>
+    <div id="waterfall"></div>
+  </div>
+  <div class="panel">
+    <p class="panel-title">Monthly milestones</p>
+    <div id="milestones"></div>
+  </div>
+</div>
+
+<div class="chart-wrap">
+  <p class="panel-title">Cumulative cash position — gross profit basis</p>
+  <div class="chart-legend">
+    <span class="legend-item"><span class="legend-swatch" style="background:#1d9e75;"></span>Cumulative cash (left axis)</span>
+    <span class="legend-item"><span class="legend-swatch" style="background:#378add;border-top:2px dashed #378add;height:0;"></span>Gross profit / mo (right)</span>
+    <span class="legend-item"><span class="legend-swatch" style="background:#e24b4a;border-top:2px dashed #e24b4a;height:0;"></span>Opex / mo (right)</span>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="chart" role="img" aria-label="Line chart showing cumulative cash and monthly gross profit vs opex over 36 months"></canvas>
+  </div>
+</div>
+
+<div class="panel">
+  <p class="panel-title">Scenario comparison</p>
+  <div class="scenarios-grid" id="scenarios"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const STARTUP = 11513, FIXED_BASE = 2512, CHURN = 0.05;
+const REV_PT = 225, LAB_REV = 251, LAB_GM = 0.65;
+let noMD = false, chart = null;
+
+function fmt(n) {
+  const abs = Math.abs(Math.round(n));
+  const s = abs >= 10000 ? '$' + Math.round(abs/1000) + 'k' : abs >= 1000 ? '$' + (abs/1000).toFixed(1) + 'k' : '$' + abs;
+  return n < 0 ? '-' + s : s;
+}
+
+function runModel(mkt, gm, noMD_) {
+  const fixed = noMD_ ? FIXED_BASE - 2000 : FIXED_BASE;
+  const gpMo = REV_PT * (gm / 100);
+  const gpLab = LAB_REV * LAB_GM;
+  const cac = mkt <= 0 ? 100 : mkt <= 500 ? 125 : mkt <= 2000 ? 200 : 300;
+  const newPtsMo = mkt <= 0 ? 2 : Math.max(1, Math.floor(mkt / cac));
+  let pts = 0, cum = -STARTUP, mbe = null, cbe = null;
+  const tl = [];
+  for (let m = 1; m <= 48; m++) {
+    pts = pts * (1 - CHURN) + newPtsMo;
+    const gp = pts * gpMo + newPtsMo * gpLab;
+    const opex = fixed + mkt;
+    const net = gp - opex;
+    cum += net;
+    if (!mbe && net >= 0) mbe = m;
+    if (!cbe && cum >= 0) cbe = m;
+    tl.push({ m, pts: Math.round(pts), rev: Math.round(pts * REV_PT + newPtsMo * LAB_REV), gp: Math.round(gp), opex: Math.round(opex), net: Math.round(net), cum: Math.round(cum) });
+  }
+  return { mbe: mbe||'>48', cbe: cbe||'>48', tl, ptsToMBE: Math.ceil((fixed+mkt)/gpMo), gpMo: Math.round(gpMo), fixed, cac, newPtsMo };
+}
+
+function toggleMD() {
+  noMD = !noMD;
+  document.getElementById('mdBtn').textContent = noMD ? 'Equity (no fee)' : 'Cash $2k/mo';
+  document.getElementById('mdNote').textContent = noMD ? 'saving $2,000/mo' : 'click to toggle equity';
+  update();
+}
+
+function update() {
+  const mkt = +document.getElementById('mkt').value;
+  const gm = +document.getElementById('gm').value;
+  document.getElementById('mktLbl').textContent = '$' + mkt.toLocaleString();
+  document.getElementById('gmLbl').textContent = gm + '%';
+
+  const r = runModel(mkt, gm, noMD);
+  const capital = STARTUP + r.fixed * 3 + mkt * 3;
+
+  document.getElementById('metrics').innerHTML = [
+    { label: 'GP per patient / mo', val: fmt(r.gpMo), sub: gm + '% of ' + fmt(REV_PT) + ' rev' },
+    { label: 'Patients to break even', val: r.ptsToMBE + ' patients', sub: 'monthly BE threshold' },
+    { label: 'Monthly breakeven', val: 'Month ' + r.mbe, sub: fmt(r.gpMo * r.ptsToMBE) + ' GP needed' },
+    { label: 'Full payback', val: 'Month ' + r.cbe, sub: fmt(capital) + ' recovered' },
+  ].map(m => `<div class="metric-card"><div class="metric-label">${m.label}</div><div class="metric-val">${m.val}</div><div class="metric-sub">${m.sub}</div></div>`).join('');
+
+  const gpPharma = Math.round(REV_PT * (1 - gm / 100));
+  document.getElementById('waterfall').innerHTML = [
+    { label: 'Patient pays', val: fmt(REV_PT) + '/mo', bar: 100, color: '#378add' },
+    { label: 'Pharmacy keeps', val: '-' + fmt(gpPharma) + '/mo', bar: Math.round(gpPharma / REV_PT * 100), color: '#e24b4a' },
+    { label: 'Milo gross profit', val: fmt(r.gpMo) + '/mo', bar: Math.round(r.gpMo / REV_PT * 100), color: '#1d9e75' },
+    { label: 'Fixed overhead / pt', val: '÷ ' + r.ptsToMBE + ' pts', bar: null, color: '#888' },
+    { label: 'Breakeven threshold', val: r.ptsToMBE + ' patients', bar: null, color: '#ba7517' },
+  ].map(row => `<div class="waterfall-row">
+    <span class="wf-label">${row.label}</span>
+    ${row.bar !== null ? `<div class="wf-bar-wrap"><div class="wf-bar" style="width:${row.bar}%;background:${row.color};"></div></div>` : '<div style="flex:1;"></div>'}
+    <span class="wf-val">${row.val}</span>
+  </div>`).join('') + `<p class="wf-note">at ${fmt(r.fixed + mkt)} total monthly costs</p>`;
+
+  document.getElementById('milestones').innerHTML = [1,3,6,9,12,18,24].map(mo => {
+    const d = r.tl[mo-1];
+    const pos = d.net >= 0;
+    return `<div class="milestone-row">
+      <span class="ms-mo">Month ${mo}</span>
+      <span class="ms-pts">${d.pts} pts</span>
+      <span class="ms-gp">${fmt(d.gp)} GP</span>
+      <span class="ms-net" style="color:${pos?'#1d9e75':'#e24b4a'}">${pos?'+':''}${fmt(d.net)}</span>
+    </div>`;
+  }).join('');
+
+  const tl36 = r.tl.slice(0, 36);
+  if (chart) { chart.destroy(); }
+  chart = new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: {
+      labels: tl36.map(d => d.m),
+      datasets: [
+        { label: 'Cumulative cash', data: tl36.map(d => d.cum), borderColor: '#1d9e75', borderWidth: 2, pointRadius: 0, tension: 0.3, yAxisID: 'y' },
+        { label: 'Gross profit/mo', data: tl36.map(d => d.gp), borderColor: '#378add', borderWidth: 1.5, pointRadius: 0, borderDash: [4,3], tension: 0.3, yAxisID: 'y2' },
+        { label: 'Opex/mo', data: tl36.map(d => d.opex), borderColor: '#e24b4a', borderWidth: 1.5, pointRadius: 0, borderDash: [4,3], tension: 0.3, yAxisID: 'y2' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font:{size:11}, color:'#888', maxTicksLimit:12 }, grid: { color:'rgba(0,0,0,0.05)' } },
+        y: { position:'left', ticks: { font:{size:10}, color:'#888', callback: v => (v<0?'-$':'$')+Math.abs(Math.round(v/1000))+'k' }, grid: { color:'rgba(0,0,0,0.05)' } },
+        y2: { position:'right', ticks: { font:{size:10}, color:'#888', callback: v => '$'+Math.round(v/1000)+'k' }, grid: { display:false } },
+      }
+    }
+  });
+
+  const scenarioDefs = [
+    { label:'Base case', mkt:500, gm:45, noMD_:false },
+    { label:'Low margin (40%)', mkt:500, gm:40, noMD_:false },
+    { label:'High margin (55%)', mkt:500, gm:55, noMD_:false },
+    { label:'Equity MD', mkt:500, gm:45, noMD_:true },
+    { label:'More marketing ($3k)', mkt:3000, gm:45, noMD_:false },
+    { label:'Best case', mkt:3000, gm:55, noMD_:true },
+  ];
+  document.getElementById('scenarios').innerHTML = scenarioDefs.map(s => {
+    const sr = runModel(s.mkt, s.gm, s.noMD_);
+    const isActive = s.mkt===mkt && s.gm===gm && s.noMD_===noMD;
+    return `<div class="scenario-card ${isActive?'active':''}">
+      <p class="scenario-name ${isActive?'active':''}">${s.label}</p>
+      <p class="scenario-stat">GP/pt: ${fmt(sr.gpMo)}</p>
+      <p class="scenario-stat">MBE: Month ${sr.mbe}</p>
+      <p class="scenario-stat">Payback: Month ${sr.cbe}</p>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('mkt').addEventListener('input', update);
+document.getElementById('gm').addEventListener('input', update);
+update();
+</script>
+</body>
+</html>
